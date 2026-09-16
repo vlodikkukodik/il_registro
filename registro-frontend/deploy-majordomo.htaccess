@@ -1,0 +1,18 @@
+RewriteEngine On
+RewriteBase /registro/
+AcceptPathInfo On
+
+# Force HTTPS using the proxy header, since Apache sits behind a TLS-terminating
+# frontend and its own %{HTTPS} var doesn't reflect the real scheme.
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Let requests targeting proxy-api.php (including its PATH_INFO suffix,
+# e.g. proxy-api.php/api/v1/auth/login) reach the PHP script untouched.
+RewriteRule ^proxy-api\.php(/.*)?$ proxy-api.php [L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.html [L]

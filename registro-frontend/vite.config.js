@@ -166,5 +166,8 @@ export default defineConfig({
         ws: true
       }
     }
+  },
+  preview: {
+    allowedHosts: ['registro.vladinc.ru']
   }
 })

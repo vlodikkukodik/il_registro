@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS schools (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Table may already exist (from an earlier migration) without this column.
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS code VARCHAR(50);
+
 CREATE INDEX IF NOT EXISTS idx_schools_code ON schools(code);
 CREATE INDEX IF NOT EXISTS idx_schools_name ON schools(name);
 CREATE INDEX IF NOT EXISTS idx_schools_type ON schools(type);

@@ -22,8 +22,18 @@ $headers = ['Host: api.registro.vladinc.ru'];
 if (isset($_SERVER['CONTENT_TYPE'])) {
     $headers[] = 'Content-Type: ' . $_SERVER['CONTENT_TYPE'];
 }
-if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-    $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+// Some PHP/Apache setups (e.g. PHP-FPM) don't populate
+// $_SERVER['HTTP_AUTHORIZATION'] for security reasons; getallheaders() sees it.
+$incomingHeaders = function_exists('getallheaders') ? getallheaders() : [];
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+foreach ($incomingHeaders as $name => $value) {
+    if (strcasecmp($name, 'Authorization') === 0) {
+        $authHeader = $value;
+        break;
+    }
+}
+if ($authHeader) {
+    $headers[] = 'Authorization: ' . $authHeader;
 }
 if (isset($_SERVER['HTTP_ACCEPT'])) {
     $headers[] = 'Accept: ' . $_SERVER['HTTP_ACCEPT'];

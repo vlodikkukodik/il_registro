@@ -28,6 +28,9 @@ if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
 if (isset($_SERVER['HTTP_ACCEPT'])) {
     $headers[] = 'Accept: ' . $_SERVER['HTTP_ACCEPT'];
 }
+if (isset($_SERVER['HTTP_COOKIE'])) {
+    $headers[] = 'Cookie: ' . $_SERVER['HTTP_COOKIE'];
+}
 
 $ch = curl_init($url);
 curl_setopt_array($ch, [
@@ -54,6 +57,15 @@ $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 curl_close($ch);
+
+$rawHeaders = substr($response, 0, $headerSize);
+foreach (explode("\r\n", $rawHeaders) as $line) {
+    if (stripos($line, 'Set-Cookie:') === 0) {
+        // Relay the backend's cookie as-is; it carries no Domain attribute
+        // so the browser scopes it to this proxy's own origin (vladinc.ru).
+        header($line, false);
+    }
+}
 
 http_response_code($httpCode);
 if ($contentType) {

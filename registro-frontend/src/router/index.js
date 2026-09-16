@@ -5,7 +5,7 @@ import { setApiRouter } from '@/services/api'
 import { i18n } from '@/i18n'
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes
 })
 

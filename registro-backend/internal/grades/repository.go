@@ -927,22 +927,10 @@ func (r *repository) GetScrutinyRecordSummary(ctx context.Context, studentID str
 	var bg, sc sql.NullFloat64
 	err = r.db.QueryRowContext(
 		ctx,
-		`SELECT conduct_grade, scholastic_credit FROM scrutiny_records WHERE student_id = $1 AND semester = $2`, studentID, semester,
-	).Scan(&bg, &sc)
-	if err == nil {
-		if bg.Valid {
-			behaviorGrade = bg.Float64
-		}
-		if sc.Valid {
-			scholasticCredit = sc.Float64
-		}
-		found = true
-		return
-	}
-
-	err = r.db.QueryRowContext(
-		ctx,
-		`SELECT behavior_grade, scholastic_credit FROM semester_reports WHERE student_id = $1 AND semester = $2`, studentID, semester,
+		`SELECT sr.conduct_grade, ssc.assigned_credit
+		 FROM scrutiny_records sr
+		 LEFT JOIN student_school_credits ssc ON ssc.student_id = sr.student_id AND ssc.class_id = sr.class_id
+		 WHERE sr.student_id = $1 AND sr.semester = $2`, studentID, semester,
 	).Scan(&bg, &sc)
 	if err == nil {
 		if bg.Valid {

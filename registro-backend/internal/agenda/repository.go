@@ -155,7 +155,7 @@ func (r *PostgresRepository) IsStudentInClass(ctx context.Context, studentID, cl
 		SELECT EXISTS (
 			SELECT 1 FROM users u
 			LEFT JOIN students s ON u.id = s.user_id
-			WHERE u.id = $1::uuid AND (u.class_id = $2::uuid OR s.class_id = $2::uuid)
+			WHERE u.id = $1::uuid AND s.class_id = $2::uuid
 		)
 	`
 	var exists bool

@@ -792,9 +792,9 @@ func (r *PostgresRepository) GetFascicoloSummary(ctx context.Context, studentID 
 	// Ogni subquery restituisce un singolo scalare e non può fallire silenziosamente.
 	query := `
 		SELECT
-			(SELECT COUNT(*) FROM student_documents  WHERE student_id = $1) AS doc_count,
-			(SELECT COUNT(*) FROM disciplinary_notes  WHERE student_id = $1) AS notes_count,
-			(SELECT COALESCE(SUM(hours), 0) FROM pcto_activities WHERE student_id = $1) AS pcto_hours
+			(SELECT COUNT(*) FROM documents_enhanced WHERE student_id = $1 AND deleted_at IS NULL) AS doc_count,
+			(SELECT COUNT(*) FROM student_notes WHERE student_id = $1) AS notes_count,
+			(SELECT COALESCE(SUM(ph.hours), 0) FROM pcto_hours ph JOIN pcto_participations pp ON ph.participation_id = pp.id WHERE pp.student_id = $1) AS pcto_hours
 	`
 	var docCount, notesCount, pctoHours int
 	if err := r.db.QueryRowContext(ctx, query, studentID).Scan(&docCount, &notesCount, &pctoHours); err != nil {

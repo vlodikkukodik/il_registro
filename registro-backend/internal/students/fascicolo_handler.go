@@ -234,9 +234,9 @@ func (h *FascicoloHandler) GetFascicolo(c *gin.Context) {
 			return
 		}
 		rows, err := h.db.QueryContext(c.Request.Context(),
-			`SELECT dn.id, COALESCE(u.first_name || ' ' || u.last_name, 'Docente'), dn.description, dn.created_at
-			 FROM disciplinary_notes dn
-			 LEFT JOIN users u ON dn.author_id = u.id
+			`SELECT dn.id, COALESCE(u.first_name || ' ' || u.last_name, 'Docente'), COALESCE(dn.note, ''), dn.created_at
+			 FROM student_notes dn
+			 LEFT JOIN users u ON dn.teacher_id = u.id
 			 WHERE (dn.student_id::text = $1 OR dn.student_id::text = $2)
 			 ORDER BY dn.created_at DESC`, studentUUID, userUUID,
 		)
@@ -268,10 +268,13 @@ func (h *FascicoloHandler) GetFascicolo(c *gin.Context) {
 			return
 		}
 		rows, err := h.db.QueryContext(c.Request.Context(),
-			`SELECT id, title, COALESCE(company_name, ''), hours, date
-			 FROM pcto_activities
-			 WHERE (student_id::text = $1 OR student_id::text = $2)
-			 ORDER BY date DESC`, studentUUID, userUUID,
+			`SELECT ph.id, proj.title, COALESCE(comp.name, ''), ph.hours, ph.date
+			 FROM pcto_hours ph
+			 JOIN pcto_participations pp ON ph.participation_id = pp.id
+			 JOIN pcto_projects proj ON pp.project_id = proj.id
+			 LEFT JOIN pcto_companies comp ON proj.company_id = comp.id
+			 WHERE (pp.student_id::text = $1 OR pp.student_id::text = $2)
+			 ORDER BY ph.date DESC`, studentUUID, userUUID,
 		)
 		if err != nil {
 			return
@@ -301,10 +304,10 @@ func (h *FascicoloHandler) GetFascicolo(c *gin.Context) {
 			return
 		}
 		rows, err := h.db.QueryContext(c.Request.Context(),
-			`SELECT hw.id, hw.title, hw.subject_id, hw.due_date, COALESCE(hw.description, '')
-			 FROM homeworks hw
-			 JOIN class_students cs ON hw.class_id = cs.class_id
-			 WHERE (cs.student_id::text = $1 OR cs.student_id::text = $2)
+			`SELECT hw.id, COALESCE(hw.type, 'Compito'), hw.subject_id, hw.due_date, COALESCE(hw.description, '')
+			 FROM class_homeworks hw
+			 JOIN students s ON hw.class_id = s.class_id
+			 WHERE (s.id::text = $1 OR s.user_id::text = $1 OR s.id::text = $2 OR s.user_id::text = $2)
 			 ORDER BY hw.due_date DESC`, studentUUID, userUUID,
 		)
 		if err != nil {
@@ -336,8 +339,8 @@ func (h *FascicoloHandler) GetFascicolo(c *gin.Context) {
 		}
 		rows, err := h.db.QueryContext(c.Request.Context(),
 			`SELECT id, title, type, status, created_at
-			 FROM student_documents
-			 WHERE (student_id::text = $1 OR student_id::text = $2)
+			 FROM documents_enhanced
+			 WHERE (student_id::text = $1 OR student_id::text = $2) AND deleted_at IS NULL
 			 ORDER BY created_at DESC`, studentUUID, userUUID,
 		)
 		if err != nil {

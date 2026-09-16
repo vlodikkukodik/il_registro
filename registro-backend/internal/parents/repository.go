@@ -63,11 +63,11 @@ func (r *PostgresRepository) GetDashboardStats(ctx context.Context, parentUserID
 	// 1. Upcoming confirmed colloqui for this parent
 	queryColloqui := `
 		SELECT COUNT(*) 
-		FROM colloqui_prenotazioni cp
-		JOIN colloqui_slot cs ON cp.slot_id = cs.id
-		WHERE cp.parent_id = $1::uuid 
+		FROM colloquio_bookings cp
+		JOIN colloquio_slots cs ON cp.slot_id = cs.id
+		WHERE cp.parent_id = $1::uuid
 		  AND cp.status = 'confirmed'
-		  AND cs.data_ora >= NOW()`
+		  AND (cs.date + cs.start_time) >= NOW()`
 	var upcomingColloqui int
 	if err := r.db.QueryRowContext(ctx, queryColloqui, parentUserID).Scan(&upcomingColloqui); err == nil {
 		resp.UpcomingColloqui = upcomingColloqui
@@ -83,11 +83,10 @@ func (r *PostgresRepository) GetDashboardStats(ctx context.Context, parentUserID
 		}
 
 		queryPay := fmt.Sprintf(`
-			SELECT COUNT(*) 
-			FROM payments 
-			WHERE student_id IN (%s) 
-			  AND status = 'pending' 
-			  AND deleted_at IS NULL`, strings.Join(placeholders, ","))
+			SELECT COUNT(*)
+			FROM school_payments
+			WHERE student_id IN (%s)
+			  AND status = 'pending'`, strings.Join(placeholders, ","))
 		var pendingPayments int
 		if err := r.db.QueryRowContext(ctx, queryPay, args...).Scan(&pendingPayments); err == nil {
 			resp.PendingPayments = pendingPayments
@@ -110,8 +109,7 @@ func (r *PostgresRepository) GetDashboardStats(ctx context.Context, parentUserID
 		SELECT COUNT(*) 
 		FROM communications c
 		LEFT JOIN communication_signatures cs ON c.id = cs.communication_id AND cs.user_id = $1::uuid
-		WHERE c.deleted_at IS NULL 
-		  AND (cs.id IS NULL OR cs.signed_at IS NULL)`
+		WHERE (cs.id IS NULL OR cs.signed_at IS NULL)`
 	var unreadComms int
 	if err := r.db.QueryRowContext(ctx, queryUnread, parentUserID).Scan(&unreadComms); err == nil {
 		resp.UnreadCommunications = unreadComms

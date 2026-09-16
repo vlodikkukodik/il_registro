@@ -584,7 +584,7 @@ func (r *PostgresRepository) GetMonthlyJournalData(ctx context.Context, classID 
 		SELECT TO_CHAR(sn.date, 'DD/MM/YYYY'),
 		       COALESCE(su.last_name || ' ' || su.first_name, 'Alunno'),
 		       COALESCE(tu.last_name || ' ' || tu.first_name, 'Docente'),
-		       sn.description, sn.note_type
+		       COALESCE(sn.note, ''), sn.type::text
 		FROM student_notes sn
 		JOIN students s ON sn.student_id = s.id
 		JOIN users su ON s.user_id = su.id

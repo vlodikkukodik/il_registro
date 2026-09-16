@@ -181,8 +181,12 @@ const handleSessionExpired = () => {
         if (appRouter.currentRoute?.value?.path !== '/login') {
             appRouter.push('/login?reason=session_expired');
         }
-    } else if (typeof window !== 'undefined' && window.location?.pathname !== '/login') {
-        window.location.href = '/login?reason=session_expired';
+    } else if (typeof window !== 'undefined') {
+        const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+        const loginPath = `${base}/login`;
+        if (window.location?.pathname !== loginPath) {
+            window.location.href = `${loginPath}?reason=session_expired`;
+        }
     }
 };
 

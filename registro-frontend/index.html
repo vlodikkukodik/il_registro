@@ -43,6 +43,10 @@
         box.textContent = title + '\n' + detail
         document.body.appendChild(box)
       }
+      // Exposed so Vue's own app.config.errorHandler (which intercepts
+      // component errors before they'd ever reach window.onerror) can also
+      // surface them here.
+      window.__showBlankPageError = show
       window.addEventListener('error', function (e) {
         show('Errore JavaScript:', (e.message || '') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + '\n' + (e.error && e.error.stack || ''))
       })

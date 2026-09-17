@@ -39,6 +39,9 @@ app.use(i18n)
 
 app.config.errorHandler = (err, instance, info) => {
   console.error('[Vue Global Error Handler]:', err, info)
+  if (typeof window !== 'undefined' && typeof window.__showBlankPageError === 'function') {
+    window.__showBlankPageError('Errore Vue (' + info + '):', (err && (err.stack || err.message)) || String(err))
+  }
   try {
     const errorStore = useErrorStore()
     errorStore.reportError(err)
@@ -84,7 +87,14 @@ app.use(Quasar, {
     }
 })
 
-app.mount('#app')
+try {
+  app.mount('#app')
+} catch (err) {
+  console.error('[app.mount failed]:', err)
+  if (typeof window !== 'undefined' && typeof window.__showBlankPageError === 'function') {
+    window.__showBlankPageError('Errore al montaggio dell\'app:', (err && (err.stack || err.message)) || String(err))
+  }
+}
 
 // Initialize the offline outbox: loads pending operations from IndexedDB.
 // Done after mount so Pinia is fully available.

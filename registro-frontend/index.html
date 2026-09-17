@@ -37,10 +37,10 @@
     // Remove once the blank-page investigation is resolved.
     (function () {
       function show(title, detail) {
-        if (document.getElementById('app').childElementCount > 0) return
         var box = document.createElement('pre')
-        box.style.cssText = 'white-space:pre-wrap;font:12px monospace;padding:16px;color:#b91c1c;background:#fef2f2;margin:16px;border-radius:8px;'
-        box.textContent = title + '\n' + detail
+        box.style.cssText = 'white-space:pre-wrap;font:12px monospace;padding:16px;color:#b91c1c;background:#fef2f2;margin:16px;border-radius:8px;position:fixed;top:0;left:0;right:0;z-index:999999;max-height:60vh;overflow:auto;box-shadow:0 2px 8px rgba(0,0,0,.2);'
+        box.textContent = title + '\n' + detail + '\n\n(tocca per chiudere)'
+        box.addEventListener('click', function () { box.remove() })
         document.body.appendChild(box)
       }
       // Exposed so Vue's own app.config.errorHandler (which intercepts

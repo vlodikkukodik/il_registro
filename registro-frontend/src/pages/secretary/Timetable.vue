@@ -306,6 +306,8 @@
                   <q-select
                     v-model="assignForm.teacher_id"
                     :options="teacherOptions"
+                    option-value="id"
+                    option-label="label"
                     label="Docente"
                     outlined
                     dense

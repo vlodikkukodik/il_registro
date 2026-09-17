@@ -15,14 +15,6 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Missing static files (e.g. an old hashed chunk requested by a tab still
-# running a previous build) must 404, not fall back to index.html: Safari
-# refuses an HTML response as a module script and the navigation dies
-# silently instead of triggering the router's reload-on-chunk-error path.
-RewriteRule ^assets/ - [R=404,L]
-RewriteCond %{REQUEST_URI} \.[A-Za-z0-9]+$
-RewriteRule ^ - [R=404,L]
-
 RewriteRule ^ index.html [L]
 
 # The app shell and service worker must always be revalidated, otherwise a

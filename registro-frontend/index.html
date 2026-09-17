@@ -93,14 +93,33 @@
       // device, mirror console output and explicit checkpoints to a log
       // file on the server so it can be inspected from there instead.
       // Temporary — remove once the blank-page investigation concludes.
+      var tabId = Math.random().toString(36).slice(2, 8)
       function remoteLog(tag, data) {
         try {
-          var payload = JSON.stringify({ tag: tag, data: data, url: location.href, ua: navigator.userAgent })
+          var payload = JSON.stringify({ tab: tabId, tag: tag, data: data, url: location.href })
           fetch('/registro/remote-log.php', { method: 'POST', body: payload, keepalive: true }).catch(function () {})
         } catch (e) {}
       }
       window.__remoteLog = remoteLog
       remoteLog('boot', 'index.html inline script running')
+
+      // Which element actually receives a tap (to detect invisible overlays).
+      function describe(el) {
+        if (!el || !el.tagName) return String(el)
+        var s = el.tagName.toLowerCase()
+        if (el.id) s += '#' + el.id
+        if (el.className && typeof el.className === 'string') s += '.' + el.className.trim().split(/\s+/).slice(0, 4).join('.')
+        var txt = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40)
+        return s + ' "' + txt + '"'
+      }
+      ;['click', 'touchend'].forEach(function (type) {
+        document.addEventListener(type, function (e) {
+          var pt = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e
+          var atPoint = document.elementFromPoint(pt.clientX, pt.clientY)
+          var link = e.target && e.target.closest ? e.target.closest('a,[role=menuitem],.q-item') : null
+          remoteLog(type, 'target=' + describe(e.target) + ' | atPoint=' + describe(atPoint) + ' | closestItem=' + describe(link) + ' | href=' + (link && link.getAttribute('href')) + ' | defaultPrevented=' + e.defaultPrevented)
+        }, true)
+      })
       ;['log', 'warn', 'error'].forEach(function (level) {
         var orig = console[level]
         console[level] = function () {

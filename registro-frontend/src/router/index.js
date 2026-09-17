@@ -13,9 +13,18 @@ if (typeof setApiRouter === 'function') {
     setApiRouter(router)
 }
 
-router.beforeEach((to, from) => authGuard(to, from))
+const rlog = (msg) => { if (typeof window !== 'undefined' && window.__remoteLog) window.__remoteLog('router', msg) }
 
-router.afterEach((to) => {
+router.beforeEach(async (to, from) => {
+    rlog('beforeEach start ' + from.fullPath + ' -> ' + to.fullPath)
+    const result = await authGuard(to, from)
+    rlog('beforeEach result for ' + to.fullPath + ': ' + JSON.stringify(result === undefined ? 'proceed' : result))
+    return result
+})
+router.beforeResolve((to) => { rlog('beforeResolve ' + to.fullPath + ' matched=' + to.matched.map(r => r.path).join(',')) })
+
+router.afterEach((to, from, failure) => {
+    rlog('afterEach ' + to.fullPath + (failure ? ' FAILURE: ' + String(failure) : ' ok'))
     const base = 'Registro Elettronico'
     let resolvedTitle = ''
 
@@ -52,6 +61,7 @@ router.afterEach((to) => {
 })
 
 router.onError((error, to) => {
+    rlog('onError to=' + (to && to.fullPath) + ' msg=' + (error && error.message) + ' stack=' + (error && error.stack))
     if (error.message && /loading chunk|failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|unable to preload css/i.test(error.message)) {
         console.error('Lazy-load chunk failure detected:', error)
         const retryKey = `chunk_retry_${to?.fullPath || 'unknown'}`

@@ -23,12 +23,16 @@ export const authGuard = async (to, from, ...rest) => {
 
     // If initAuth is currently running or token is missing with stored user session,
     // wait for the shared promise to avoid concurrent executions.
+    const glog = (msg) => { if (typeof window !== 'undefined' && window.__remoteLog) window.__remoteLog('guard', msg) }
     if (authStore.isInitializing || (!authStore.token && (localStorage.getItem('user') || sessionStorage.getItem('user')))) {
+        glog('waiting initAuth for ' + to.fullPath)
         if (!_initAuthPromise) {
             _initAuthPromise = authStore.initAuth().finally(() => { _initAuthPromise = null })
         }
         await _initAuthPromise
+        glog('initAuth done, authenticated=' + authStore.isAuthenticated)
     }
+    glog('role=' + authStore.userRole + ' assignments=' + JSON.stringify((authStore.user && authStore.user.assignments) || null) + ' to=' + to.fullPath + ' requiredRoles=' + JSON.stringify(to.meta && (to.meta.roles || to.meta.role)))
 
     const publicRoutes = ['/login', '/register', '/forgot-password']
 

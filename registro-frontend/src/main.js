@@ -89,3 +89,24 @@ app.mount('#app')
 // Initialize the offline outbox: loads pending operations from IndexedDB.
 // Done after mount so Pinia is fully available.
 useOutboxStore().init().catch(e => console.warn('[outbox] init failed:', e))
+
+// PWA update handling: registerType 'autoUpdate' only swaps in a new service
+// worker on navigation/reload by default, so a tab left open never notices a
+// new deploy. Poll for updates while the tab is open and reload as soon as a
+// new version takes control, so stale cached builds don't linger silently.
+if ('serviceWorker' in navigator) {
+  import('virtual:pwa-register').then(({ registerSW }) => {
+    const updateSW = registerSW({
+      immediate: true,
+      onRegisteredSW(_swUrl, registration) {
+        if (!registration) return
+        setInterval(() => {
+          registration.update().catch(() => {})
+        }, 60 * 1000)
+      },
+      onNeedRefresh() {
+        updateSW(true)
+      }
+    })
+  }).catch((e) => console.warn('[pwa] service worker registration failed:', e))
+}

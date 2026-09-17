@@ -58,6 +58,7 @@ export default defineConfig({
 
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'vite.svg'],
       manifest: {
         name: 'Registro Elettronico Scolastico',

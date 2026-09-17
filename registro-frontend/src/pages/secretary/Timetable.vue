@@ -341,6 +341,8 @@ import adminService from '@/services/adminService'
 import ScheduleGrid from '@/components/Secretary/ScheduleGrid.vue'
 import TeacherScheduleGrid from '@/components/Secretary/TeacherScheduleGrid.vue'
 
+if (typeof window !== 'undefined' && window.__remoteLog) window.__remoteLog('Timetable.vue', 'script setup start')
+
 const $q = useQuasar()
 const { t } = useI18n()
 
@@ -392,16 +394,19 @@ const teacherTotalHours = computed(() => {
 })
 
 onMounted(async () => {
+  if (window.__remoteLog) window.__remoteLog('Timetable.vue', 'onMounted fired')
   loading.value = true
   await Promise.all([
     fetchClasses(),
     fetchTeachers(),
     fetchSubjects()
   ])
+  if (window.__remoteLog) window.__remoteLog('Timetable.vue', 'all fetches done, classes=' + classOptions.value.length)
   if (classOptions.value.length > 0) {
     selectedClass.value = classOptions.value[0].id
   }
   loading.value = false
+  if (window.__remoteLog) window.__remoteLog('Timetable.vue', 'onMounted complete')
 })
 
 const fetchClasses = async () => {

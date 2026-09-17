@@ -88,6 +88,36 @@
       window.addEventListener('unhandledrejection', function (e) {
         show('Promise non gestita:', (e.reason && (e.reason.stack || e.reason.message || e.reason)) || String(e.reason))
       })
+
+      // Remote diagnostic logger: since devtools aren't reachable on this
+      // device, mirror console output and explicit checkpoints to a log
+      // file on the server so it can be inspected from there instead.
+      // Temporary — remove once the blank-page investigation concludes.
+      function remoteLog(tag, data) {
+        try {
+          var payload = JSON.stringify({ tag: tag, data: data, url: location.href, ua: navigator.userAgent })
+          fetch('/registro/remote-log.php', { method: 'POST', body: payload, keepalive: true }).catch(function () {})
+        } catch (e) {}
+      }
+      window.__remoteLog = remoteLog
+      remoteLog('boot', 'index.html inline script running')
+      ;['log', 'warn', 'error'].forEach(function (level) {
+        var orig = console[level]
+        console[level] = function () {
+          try {
+            remoteLog('console.' + level, Array.prototype.slice.call(arguments).map(function (a) {
+              return a instanceof Error ? (a.stack || a.message) : (typeof a === 'object' ? JSON.stringify(a) : String(a))
+            }).join(' '))
+          } catch (e) {}
+          return orig.apply(console, arguments)
+        }
+      })
+      window.addEventListener('error', function (e) {
+        remoteLog('window.error', (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || ''))
+      })
+      window.addEventListener('unhandledrejection', function (e) {
+        remoteLog('unhandledrejection', String(e.reason && (e.reason.stack || e.reason.message || e.reason)))
+      })
     })()
   </script>
   <script type="module" src="/src/main.js"></script>

@@ -144,6 +144,8 @@ import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { textbookService } from '@/services/textbookService'
 
+if (typeof window !== 'undefined' && window.__remoteLog) window.__remoteLog('Textbooks.vue', 'script setup start')
+
 const $q = useQuasar()
 const { t } = useI18n()
 const textbooks = ref([])
@@ -172,12 +174,17 @@ const columns = computed(() => [
   { name: 'actions', label: t('textbooksPage.colActions'), align: 'center' }
 ])
 
-onMounted(fetchTextbooks)
+onMounted(() => {
+  if (window.__remoteLog) window.__remoteLog('Textbooks.vue', 'onMounted fired')
+  fetchTextbooks()
+})
 
 async function fetchTextbooks() {
+  if (window.__remoteLog) window.__remoteLog('Textbooks.vue', 'fetchTextbooks start')
   loading.value = true
   try {
     const res = await textbookService.getAll()
+    if (window.__remoteLog) window.__remoteLog('Textbooks.vue', 'fetchTextbooks got response, count=' + (res.data ? res.data.length : 'null'))
     textbooks.value = res.data || []
   } catch (err) {
     console.error(err)

@@ -31,6 +31,26 @@
 
 <body>
   <div id="app"></div>
+  <script>
+    // Visible fallback for a blank page: shows the raw error inline when
+    // devtools aren't available (e.g. iPad Safari without a Mac to inspect).
+    // Remove once the blank-page investigation is resolved.
+    (function () {
+      function show(title, detail) {
+        if (document.getElementById('app').childElementCount > 0) return
+        var box = document.createElement('pre')
+        box.style.cssText = 'white-space:pre-wrap;font:12px monospace;padding:16px;color:#b91c1c;background:#fef2f2;margin:16px;border-radius:8px;'
+        box.textContent = title + '\n' + detail
+        document.body.appendChild(box)
+      }
+      window.addEventListener('error', function (e) {
+        show('Errore JavaScript:', (e.message || '') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + '\n' + (e.error && e.error.stack || ''))
+      })
+      window.addEventListener('unhandledrejection', function (e) {
+        show('Promise non gestita:', (e.reason && (e.reason.stack || e.reason.message || e.reason)) || String(e.reason))
+      })
+    })()
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 

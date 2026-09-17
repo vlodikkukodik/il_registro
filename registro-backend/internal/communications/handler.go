@@ -106,7 +106,17 @@ func (h *Handler) Send(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024)
 	var req CreateMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "il corpo del messaggio supera il limite massimo consentito (64 KB) o formato JSON non valido"})
+		msg := "formato della richiesta non valido"
+		if err.Error() == "http: request body too large" {
+			msg = "il corpo del messaggio supera il limite massimo consentito (64 KB)"
+		} else if strings.Contains(err.Error(), "Subject") {
+			msg = "l'oggetto della comunicazione è obbligatorio"
+		} else if strings.Contains(err.Error(), "Body") {
+			msg = "il testo della comunicazione è obbligatorio"
+		} else if strings.Contains(err.Error(), "Type") {
+			msg = "il tipo di comunicazione è obbligatorio"
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 	msg, err := h.service.SendMessage(c.Request.Context(), role, schoolID, uid, req)

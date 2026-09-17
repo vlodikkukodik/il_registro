@@ -149,6 +149,17 @@ const resolveRecipientIds = async () => {
 }
 
 const sendCircular = async () => {
+    if (!form.title || !form.title.trim()) {
+        $q.notify({ type: 'warning', message: t('common.requiredField') || 'Il titolo è obbligatorio.' })
+        return
+    }
+    // The backend requires a non-empty body; the rich-text editor has no
+    // built-in "required" validation, so check it here before sending.
+    const plainContent = form.content.replace(/<[^>]*>/g, '').trim()
+    if (!plainContent) {
+        $q.notify({ type: 'warning', message: t('communicationsPage.bodyRequired') || 'Il testo della comunicazione è obbligatorio.' })
+        return
+    }
     if (!form.recipients.teachers && !form.recipients.parents && !form.recipients.students && !form.recipients.staff) {
         $q.notify({ type: 'warning', message: t('communicationsPage.recipientsLabel') })
         return
@@ -177,7 +188,7 @@ const sendCircular = async () => {
         $q.notify({ type: 'positive', message: t('common.success') })
         emit('sent')
     } catch (err) {
-        $q.notify({ type: 'negative', message: t('common.error') })
+        $q.notify({ type: 'negative', message: err.response?.data?.error || t('common.error') })
     } finally {
         sending.value = false
     }

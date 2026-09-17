@@ -52,7 +52,7 @@ router.afterEach((to) => {
 })
 
 router.onError((error, to) => {
-    if (error.message && /loading chunk|failed to fetch dynamically imported module/i.test(error.message)) {
+    if (error.message && /loading chunk|failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|unable to preload css/i.test(error.message)) {
         console.error('Lazy-load chunk failure detected:', error)
         const retryKey = `chunk_retry_${to?.fullPath || 'unknown'}`
         if (!sessionStorage.getItem(retryKey)) {
@@ -68,6 +68,9 @@ router.onError((error, to) => {
             // Already retried: clear the flag and do not loop
             sessionStorage.removeItem(retryKey)
             console.error('Chunk load definitively failed after retry. The user may need to clear cache.', error)
+            if (typeof window !== 'undefined' && typeof window.__showBlankPageError === 'function') {
+                window.__showBlankPageError('Impossibile caricare la pagina dopo un nuovo tentativo:', (error && error.message) || String(error))
+            }
         }
         return
     }

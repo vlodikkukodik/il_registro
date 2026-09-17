@@ -59,7 +59,8 @@ router.onError((error, to) => {
             // First attempt: mark the retry and reload once
             sessionStorage.setItem(retryKey, '1')
             if (to?.fullPath) {
-                window.location.assign(to.fullPath)
+                const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+                window.location.assign(base + to.fullPath)
             } else {
                 window.location.reload()
             }

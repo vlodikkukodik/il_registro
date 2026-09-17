@@ -5,9 +5,11 @@ import "time"
 // Requests
 
 type CreateDocumentRequest struct {
-	Title      string  `json:"title" binding:"required"`
-	Type       DocType `json:"type" binding:"required"`
-	Content    string  `json:"content" binding:"required"`
+	Title     string  `json:"title" binding:"required"`
+	Type      DocType `json:"type" binding:"required"`
+	// Required unless FileURL is set (an uploaded file needs no rich-text body).
+	Content    string  `json:"content"`
+	FileURL    *string `json:"file_url,omitempty"` // Set after uploading via POST /documents/upload
 	StudentID  *string `json:"student_id,omitempty"`
 	ClassID    *string `json:"class_id,omitempty"`
 	TemplateID *string `json:"template_id,omitempty"` // Create from template
@@ -44,6 +46,7 @@ type DocumentListResponse struct {
 	Status    DocStatus `json:"status"`
 	UpdatedAt time.Time `json:"updated_at"`
 	IsSigned  bool      `json:"is_signed"`
+	FileURL   *string   `json:"file_url,omitempty"`
 }
 
 type DocumentDetailResponse struct {

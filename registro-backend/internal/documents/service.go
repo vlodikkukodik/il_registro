@@ -120,6 +120,13 @@ func (s *service) CreateDocument(ctx context.Context, actorRole, userID, schoolI
 		CreatedBy: userID,
 		StudentID: req.StudentID,
 		ClassID:   req.ClassID,
+		FileURL:   req.FileURL,
+	}
+
+	// An uploaded file needs no rich-text body; the validator's minimum
+	// length check only applies to the in-browser editor content.
+	if content == "" && req.FileURL != nil {
+		content = "File allegato: " + *req.FileURL
 	}
 
 	if err := s.validator.ValidateDocument(doc, content); err != nil {
@@ -157,7 +164,7 @@ func (s *service) GetDocument(ctx context.Context, actorRole, schoolID, id strin
 	return &DocumentDetailResponse{
 		DocumentListResponse: DocumentListResponse{
 			ID: doc.ID, Title: doc.Title, Type: doc.Type, Status: doc.Status,
-			UpdatedAt: doc.UpdatedAt, IsSigned: doc.IsSigned,
+			UpdatedAt: doc.UpdatedAt, IsSigned: doc.IsSigned, FileURL: doc.FileURL,
 		},
 		Content:        content,
 		CurrentVersion: doc.CurrentVersion,
@@ -354,7 +361,7 @@ func (s *service) GetMyDocuments(ctx context.Context, schoolID, userID string) (
 		if d.CreatedBy == userID || (d.StudentID != nil && *d.StudentID == userID) {
 			res = append(res, DocumentListResponse{
 				ID: d.ID, Title: d.Title, Type: d.Type,
-				Status: d.Status, IsSigned: d.IsSigned, UpdatedAt: d.UpdatedAt,
+				Status: d.Status, IsSigned: d.IsSigned, UpdatedAt: d.UpdatedAt, FileURL: d.FileURL,
 			})
 		}
 	}
@@ -439,7 +446,7 @@ func convertList(docs []Document) []DocumentListResponse {
 	var res []DocumentListResponse
 	for _, d := range docs {
 		res = append(res, DocumentListResponse{
-			ID: d.ID, Title: d.Title, Type: d.Type, Status: d.Status, IsSigned: d.IsSigned, UpdatedAt: d.UpdatedAt,
+			ID: d.ID, Title: d.Title, Type: d.Type, Status: d.Status, IsSigned: d.IsSigned, UpdatedAt: d.UpdatedAt, FileURL: d.FileURL,
 		})
 	}
 	return res

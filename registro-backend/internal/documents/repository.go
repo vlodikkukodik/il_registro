@@ -55,13 +55,13 @@ func (r *repository) Create(d *Document, content string) error {
 	// 1. Insert Document Header
 	query := `
 		INSERT INTO documents_enhanced (
-			school_id, title, type, student_id, class_id, status, 
+			school_id, title, type, student_id, class_id, status, file_url,
 			current_version, created_by, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, 1, $7, NOW(), NOW())
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, NOW(), NOW())
 		RETURNING id`
 
 	err = tx.QueryRow(query,
-		d.SchoolID, d.Title, d.Type, d.StudentID, d.ClassID, d.Status, d.CreatedBy,
+		d.SchoolID, d.Title, d.Type, d.StudentID, d.ClassID, d.Status, d.FileURL, d.CreatedBy,
 	).Scan(&d.ID)
 
 	if err != nil {
@@ -138,7 +138,7 @@ func (r *repository) Delete(docID string) error {
 }
 
 func (r *repository) ListAll(schoolID string, docType *DocType) ([]Document, error) {
-	query := `SELECT id, school_id, title, type, student_id, class_id, status, current_version, is_signed, signed_by, signed_at, created_by, created_at, updated_at, deleted_at FROM documents_enhanced WHERE school_id = $1 AND deleted_at IS NULL`
+	query := `SELECT id, school_id, title, type, student_id, class_id, status, file_url, current_version, is_signed, signed_by, signed_at, created_by, created_at, updated_at, deleted_at FROM documents_enhanced WHERE school_id = $1 AND deleted_at IS NULL`
 	args := []interface{}{schoolID}
 
 	if docType != nil {
@@ -151,13 +151,13 @@ func (r *repository) ListAll(schoolID string, docType *DocType) ([]Document, err
 
 func (r *repository) FindByID(id string) (*Document, error) {
 	query := `
-		SELECT id, school_id, title, type, student_id, class_id, status, 
+		SELECT id, school_id, title, type, student_id, class_id, status, file_url,
 		       current_version, is_signed, signed_by, signed_at, created_by, created_at, updated_at
 		FROM documents_enhanced WHERE id=$1 AND deleted_at IS NULL`
 
 	var d Document
 	err := r.db.QueryRow(query, id).Scan(
-		&d.ID, &d.SchoolID, &d.Title, &d.Type, &d.StudentID, &d.ClassID, &d.Status,
+		&d.ID, &d.SchoolID, &d.Title, &d.Type, &d.StudentID, &d.ClassID, &d.Status, &d.FileURL,
 		&d.CurrentVersion, &d.IsSigned, &d.SignedBy, &d.SignedAt,
 		&d.CreatedBy, &d.CreatedAt, &d.UpdatedAt,
 	)
@@ -204,19 +204,19 @@ func (r *repository) GetVersions(docID string) ([]DocumentVersion, error) {
 }
 
 func (r *repository) FindByClass(classID string) ([]Document, error) {
-	return r.queryDocs(`SELECT * FROM documents_enhanced WHERE class_id=$1 AND deleted_at IS NULL`, classID)
+	return r.queryDocs(docsSelectPrefix+`WHERE class_id=$1 AND deleted_at IS NULL`, classID)
 }
 
 func (r *repository) FindByStudent(studentID string) ([]Document, error) {
-	return r.queryDocs(`SELECT * FROM documents_enhanced WHERE student_id=$1 AND deleted_at IS NULL`, studentID)
+	return r.queryDocs(docsSelectPrefix+`WHERE student_id=$1 AND deleted_at IS NULL`, studentID)
 }
 
 func (r *repository) GetInbox(schoolID string) ([]Document, error) {
-	return r.queryDocs(`SELECT * FROM documents_enhanced WHERE school_id=$1 AND status='submitted' AND deleted_at IS NULL`, schoolID)
+	return r.queryDocs(docsSelectPrefix+`WHERE school_id=$1 AND status='submitted' AND deleted_at IS NULL`, schoolID)
 }
 
 func (r *repository) GetReviewQueue(schoolID string) ([]Document, error) {
-	return r.queryDocs(`SELECT * FROM documents_enhanced WHERE school_id=$1 AND status='review' AND deleted_at IS NULL`, schoolID)
+	return r.queryDocs(docsSelectPrefix+`WHERE school_id=$1 AND status='review' AND deleted_at IS NULL`, schoolID)
 }
 
 func (r *repository) AddSignature(sig *DocumentSignature) error {
@@ -314,9 +314,13 @@ func (r *repository) DeleteTemplate(id string) error {
 }
 
 // Helper
+// docsColumnList must match the scan order in queryDocs exactly. Callers pass
+// a query built from docsSelectPrefix + a WHERE clause rather than SELECT *,
+// since SELECT * breaks silently whenever a column is added (it appends at
+// the end of the physical table order, not wherever queryDocs expects it).
+const docsSelectPrefix = `SELECT id, school_id, title, type, student_id, class_id, status, file_url, current_version, is_signed, signed_by, signed_at, created_by, created_at, updated_at, deleted_at FROM documents_enhanced `
+
 func (r *repository) queryDocs(query string, args ...interface{}) ([]Document, error) {
-	// Note: SELECT * is dangerous if schema changes, explicit columns preferred in prod.
-	// For brevity using explicit scan of known cols matching FindByID
 	rows, err := r.db.QueryContext(context.Background(), query, args...)
 	if err != nil {
 		return nil, err
@@ -327,9 +331,9 @@ func (r *repository) queryDocs(query string, args ...interface{}) ([]Document, e
 	for rows.Next() {
 		var d Document
 		if err := rows.Scan(
-			&d.ID, &d.SchoolID, &d.Title, &d.Type, &d.StudentID, &d.ClassID, &d.Status,
+			&d.ID, &d.SchoolID, &d.Title, &d.Type, &d.StudentID, &d.ClassID, &d.Status, &d.FileURL,
 			&d.CurrentVersion, &d.IsSigned, &d.SignedBy, &d.SignedAt,
-			&d.CreatedBy, &d.CreatedAt, &d.UpdatedAt, &d.DeletedAt, // Scan DeletedAt since SELECT * includes it
+			&d.CreatedBy, &d.CreatedAt, &d.UpdatedAt, &d.DeletedAt,
 		); err != nil {
 			return nil, err
 		}

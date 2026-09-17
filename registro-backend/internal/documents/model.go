@@ -42,6 +42,7 @@ type Document struct {
 
 	StudentID *string `json:"student_id,omitempty" db:"student_id"`
 	ClassID   *string `json:"class_id,omitempty" db:"class_id"`
+	FileURL   *string `json:"file_url,omitempty" db:"file_url"`
 
 	Status         DocStatus `json:"status" db:"status"`
 	CurrentVersion int       `json:"current_version" db:"current_version"`

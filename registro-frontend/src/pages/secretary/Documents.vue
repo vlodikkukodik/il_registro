@@ -95,6 +95,13 @@
             <q-btn flat round dense color="slate-400" icon="visibility" @click="previewDoc(props.row)">
               <q-tooltip>Visualizza</q-tooltip>
             </q-btn>
+            <q-btn
+              v-if="props.row.file_url"
+              flat round dense color="primary" icon="download"
+              type="a" :href="props.row.file_url" target="_blank" rel="noopener"
+            >
+              <q-tooltip>Scarica file</q-tooltip>
+            </q-btn>
             <q-btn flat round dense color="primary" icon="edit" @click="editDoc(props.row)" v-if="props.row.status === 'draft'">
               <q-tooltip>Modifica</q-tooltip>
             </q-btn>
@@ -157,7 +164,29 @@
                   </q-form>
                 </q-card-section>
               </q-card>
-              
+
+              <q-card flat class="rounded-xl border border-slate-100 bg-white q-mt-xl shadow-soft">
+                <q-card-section class="q-pa-xl">
+                  <div class="text-h6 text-weight-bold text-slate-800 q-mb-md">File Allegato</div>
+                  <q-file
+                    v-model="uploadedFile"
+                    label="Carica PDF, DOCX o immagine"
+                    outlined
+                    dense
+                    use-chips
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.csv"
+                    class="rounded-lg"
+                    :hint="form.file_url ? 'File già caricato — seleziona per sostituirlo' : 'Facoltativo: se carichi un file, il contenuto scritto qui sotto diventa opzionale'"
+                  >
+                    <template #prepend><q-icon name="attach_file" /></template>
+                  </q-file>
+                  <div v-if="form.file_url && !uploadedFile" class="row items-center q-gutter-sm q-mt-sm">
+                    <q-icon name="description" color="primary" />
+                    <a :href="form.file_url" target="_blank" rel="noopener" class="text-primary text-weight-medium">Apri file caricato</a>
+                  </div>
+                </q-card-section>
+              </q-card>
+
               <q-card flat class="rounded-xl border border-slate-100 bg-indigo-50 q-mt-xl shadow-soft">
                 <q-card-section class="q-pa-lg">
                   <div class="row items-center q-gutter-sm q-mb-md">
@@ -217,7 +246,20 @@
           <q-btn icon="close" flat round dense v-close-popup color="slate-400" :aria-label="$t('common.close') || 'Chiudi'" />
         </q-card-section>
 
-        <q-card-section class="q-pa-xl scroll bg-slate-50" style="max-height: 75vh">
+        <q-card-section v-if="selectedDoc?.file_url" class="q-pa-xl bg-slate-50" style="max-height: 75vh">
+          <iframe
+            v-if="isPdfUrl(selectedDoc.file_url)"
+            :src="selectedDoc.file_url"
+            style="width: 100%; height: 65vh; border: none;"
+            class="rounded-sm shadow-lg bg-white"
+          />
+          <div v-else class="document-paper shadow-lg rounded-sm q-pa-xl bg-white mx-auto text-center" style="max-width: 800px">
+            <q-icon name="description" size="64px" color="primary" class="q-mb-md" />
+            <div class="text-subtitle1 text-weight-medium q-mb-lg">Anteprima non disponibile per questo tipo di file</div>
+            <q-btn unelevated color="primary" icon="download" label="Apri / Scarica file" :href="selectedDoc.file_url" type="a" target="_blank" rel="noopener" no-caps class="rounded-lg" />
+          </div>
+        </q-card-section>
+        <q-card-section v-else class="q-pa-xl scroll bg-slate-50" style="max-height: 75vh">
           <div class="document-paper shadow-lg rounded-sm q-pa-xl bg-white mx-auto" style="max-width: 800px">
             <div v-html="sanitizedPreviewContent" class="document-content-html"></div>
           </div>
@@ -225,7 +267,12 @@
 
         <q-card-actions align="right" class="q-pa-lg bg-white border-t border-slate-100">
           <q-btn flat label="Chiudi" color="slate-400" v-close-popup no-caps />
-          <q-btn unelevated label="Esporta PDF" icon="picture_as_pdf" color="primary" class="rounded-lg q-px-lg shadow-sm" no-caps />
+          <q-btn
+            v-if="selectedDoc?.file_url"
+            unelevated label="Scarica file" icon="download" color="primary" class="rounded-lg q-px-lg shadow-sm" no-caps
+            :href="selectedDoc.file_url" type="a" target="_blank" rel="noopener"
+          />
+          <q-btn v-else unelevated label="Esporta PDF" icon="picture_as_pdf" color="primary" class="rounded-lg q-px-lg shadow-sm" no-caps />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -240,6 +287,7 @@ import { useQuasar } from 'quasar';
 import api from '@/services/api';
 import TemplateManager from '@/components/Secretary/TemplateManager.vue';
 import { sanitizeHTMLContent } from '@/utils/sanitize';
+import documentService from '@/services/documentService';
 
 const $q = useQuasar();
 const { t } = useI18n();
@@ -278,8 +326,11 @@ const form = ref({
   type: 'generic',
   student_id: null,
   content: '',
+  file_url: null,
   change_log: 'Aggiornamento manuale'
 });
+const uploadedFile = ref(null);
+const uploading = ref(false);
 
 const columns = [
   { name: 'title', label: 'Titolo Documento', field: 'title', align: 'left', sortable: true, classes: 'text-weight-bold text-slate-800' },
@@ -344,16 +395,20 @@ const updateCategoryCounts = () => {
 const openCreateDialog = () => {
   isEdit.value = false;
   form.value = {
-    id: null, title: '', type: 'generic', student_id: null, content: '', change_log: 'Creazione documento'
+    id: null, title: '', type: 'generic', student_id: null, content: '', file_url: null, change_log: 'Creazione documento'
   };
+  uploadedFile.value = null;
   createDialog.value = true;
 };
 
 const editDoc = (row) => {
   isEdit.value = true;
   form.value = { ...row };
+  uploadedFile.value = null;
   createDialog.value = true;
 };
+
+const isPdfUrl = (url) => !!url && url.split('?')[0].toLowerCase().endsWith('.pdf');
 
 const previewDoc = async (row) => {
   selectedDoc.value = row;
@@ -369,6 +424,14 @@ const previewDoc = async (row) => {
 const saveDocument = async () => {
   saving.value = true;
   try {
+    if (uploadedFile.value) {
+      uploading.value = true;
+      const fd = new FormData();
+      fd.append('file', uploadedFile.value);
+      const uploadRes = await documentService.uploadDocument(fd);
+      form.value.file_url = uploadRes.data?.url || null;
+      uploading.value = false;
+    }
     if (isEdit.value) {
       await api.patch(`/documents/${form.value.id}`, form.value);
       $q.notify({ type: 'positive', message: 'Documento aggiornato correttamente' });

@@ -41,7 +41,13 @@
                 <q-editor v-model="form.content" min-height="150px" />
             </div>
 
-            <q-file v-model="form.attachments" multiple :label="t('communicationsPage.hasAttachment')" outlined dense use-chips>
+            <q-file
+              v-model="form.attachment"
+              :label="t('communicationsPage.hasAttachment')"
+              outlined dense use-chips
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              hint="Un solo allegato per circolare (PDF, immagine o documento Office)"
+            >
                 <template v-slot:prepend><q-icon name="attach_file" /></template>
             </q-file>
 
@@ -62,6 +68,7 @@ import { useCommunicationsStore } from '@/stores/communications'
 import { useClassesStore } from '@/stores/classes'
 import { useAuthStore } from '@/stores/auth'
 import { userService } from '@/services/userService'
+import communicationService from '@/services/communicationService'
 
 const ATA_ROLES = [
     'dsga', 'assistente_amministrativo', 'collaboratore_ds', 'collaboratore_scolastico',
@@ -95,7 +102,7 @@ const form = reactive({
         staff: false
     },
     specificClasses: [],
-    attachments: []
+    attachment: null
 })
 
 onMounted(async () => {
@@ -154,11 +161,18 @@ const sendCircular = async () => {
             $q.notify({ type: 'warning', message: t('communicationsPage.noRecipientsFound') || 'Nessun destinatario trovato per i criteri selezionati.' })
             return
         }
+        let attachmentUrl = null
+        if (form.attachment) {
+            const uploadRes = await communicationService.uploadAttachment(form.attachment)
+            attachmentUrl = uploadRes.data?.attachment_url || null
+        }
+
         await commStore.sendMessage({
             subject: form.title,
             body: form.content,
             recipients: recipientIds,
-            type: 'circular'
+            type: 'circular',
+            attachment_url: attachmentUrl
         })
         $q.notify({ type: 'positive', message: t('common.success') })
         emit('sent')

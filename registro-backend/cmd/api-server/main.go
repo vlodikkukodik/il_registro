@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -210,7 +211,18 @@ func main() {
 	classesH := classes.NewHandler(classesSvc, appCache)
 	gradesH := grades.NewHandler(gradesSvc, gradesAnalytics)
 	attendanceH := attendance.NewHandler(attendanceSvc)
-	docsUploader := upload.NewSupabaseUploader(cfg.Supabase.URL, cfg.Supabase.Key, cfg.Supabase.Bucket)
+	// Fall back to local-disk storage when Supabase isn't actually configured
+	// (still a placeholder value), so file uploads work on a bare VPS deploy.
+	var docsUploader upload.StorageUploader
+	if cfg.Supabase.URL == "" || cfg.Supabase.Key == "" || strings.Contains(cfg.Supabase.URL, "your-project") {
+		publicBaseURL := os.Getenv("API_PUBLIC_URL")
+		if publicBaseURL == "" {
+			publicBaseURL = "https://api.registro.vladinc.ru"
+		}
+		docsUploader = upload.NewLocalUploader("./uploads", publicBaseURL+"/uploads")
+	} else {
+		docsUploader = upload.NewSupabaseUploader(cfg.Supabase.URL, cfg.Supabase.Key, cfg.Supabase.Bucket)
+	}
 	docsH := documents.NewHandler(docsSvc, docsUploader)
 	schedH := scheduling.NewHandler(schedSvc)
 
@@ -272,6 +284,9 @@ func main() {
 	r.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/metrics"})))
 
 	middleware.InitCircuitBreaker()
+
+	// Serves files written by LocalUploader when Supabase isn't configured.
+	r.Static("/uploads", "./uploads")
 
 	api := r.Group("/api/v1")
 	{

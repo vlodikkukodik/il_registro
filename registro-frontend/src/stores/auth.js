@@ -173,7 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
                 const refreshResponse = await axios.post(
                     `${getBaseURL()}/auth/refresh-token`,
                     {},
-                    { withCredentials: true }
+                    { withCredentials: true, timeout: 15000 }
                 )
                 const { access_token, user: userData } = refreshResponse.data || {}
                 if (access_token) {
@@ -181,7 +181,8 @@ export const useAuthStore = defineStore('auth', () => {
                     if (!fullUser || !fullUser.first_name) {
                         try {
                             const meRes = await axios.get(`${getBaseURL()}/auth/me`, {
-                                headers: { Authorization: `Bearer ${access_token}` }
+                                headers: { Authorization: `Bearer ${access_token}` },
+                                timeout: 15000
                             })
                             fullUser = meRes.data || fullUser
                         } catch (meErr) {

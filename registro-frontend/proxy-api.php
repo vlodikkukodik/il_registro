@@ -49,6 +49,8 @@ curl_setopt_array($ch, [
     CURLOPT_FOLLOWLOCATION => false,
     CURLOPT_CUSTOMREQUEST => $_SERVER['REQUEST_METHOD'],
     CURLOPT_HTTPHEADER => $headers,
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_TIMEOUT => 20,
 ]);
 
 if (in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {

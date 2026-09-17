@@ -69,6 +69,14 @@ router.onError((error, to) => {
             sessionStorage.removeItem(retryKey)
             console.error('Chunk load definitively failed after retry. The user may need to clear cache.', error)
         }
+        return
+    }
+
+    // Any other navigation error (e.g. a rejected async guard) would
+    // otherwise leave the page silently blank with no visible signal.
+    console.error('Router navigation error:', error)
+    if (typeof window !== 'undefined' && typeof window.__showBlankPageError === 'function') {
+        window.__showBlankPageError('Errore di navigazione:', (error && (error.stack || error.message)) || String(error))
     }
 })
 

@@ -60,11 +60,20 @@ import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { useCommunicationsStore } from '@/stores/communications'
 import { useClassesStore } from '@/stores/classes'
+import { useAuthStore } from '@/stores/auth'
+import { userService } from '@/services/userService'
+
+const ATA_ROLES = [
+    'dsga', 'assistente_amministrativo', 'collaboratore_ds', 'collaboratore_scolastico',
+    'assistente_alunni', 'assistente_personale', 'assistente_contabilita',
+    'assistente_protocollo', 'assistente_sportello', 'assistente_tecnico', 'responsabile_servizio'
+]
 
 const $q = useQuasar()
 const { t } = useI18n()
 const commStore = useCommunicationsStore()
 const classesStore = useClassesStore()
+const authStore = useAuthStore()
 const emit = defineEmits(['sent', 'cancel'])
 
 const sending = ref(false)
@@ -95,6 +104,43 @@ onMounted(async () => {
     }
 })
 
+// The backend only accepts an explicit list of recipient user IDs
+// (POST /communications resolves `recipients` via ListByIDs, not roles or
+// class filters), so the role/class checkboxes here must be resolved to
+// concrete user IDs client-side before sending.
+const resolveRecipientIds = async () => {
+    const schoolId = authStore.user?.school_id
+    const ids = new Set()
+
+    const fetchByRole = async (role, extraParams = {}) => {
+        const res = await userService.getUsers({ role, school_id: schoolId, page_size: 500, ...extraParams })
+        return res.data?.users || []
+    }
+
+    if (form.recipients.teachers) {
+        (await fetchByRole('teacher')).forEach(u => ids.add(u.id))
+    }
+    if (form.recipients.students) {
+        if (form.specificClasses.length > 0) {
+            for (const classId of form.specificClasses) {
+                (await fetchByRole('student', { class_id: classId })).forEach(u => ids.add(u.id))
+            }
+        } else {
+            (await fetchByRole('student')).forEach(u => ids.add(u.id))
+        }
+    }
+    if (form.recipients.parents) {
+        (await fetchByRole('parent')).forEach(u => ids.add(u.id))
+    }
+    if (form.recipients.staff) {
+        for (const role of ATA_ROLES) {
+            (await fetchByRole(role)).forEach(u => ids.add(u.id))
+        }
+    }
+
+    return Array.from(ids)
+}
+
 const sendCircular = async () => {
     if (!form.recipients.teachers && !form.recipients.parents && !form.recipients.students && !form.recipients.staff) {
         $q.notify({ type: 'warning', message: t('communicationsPage.recipientsLabel') })
@@ -103,11 +149,15 @@ const sendCircular = async () => {
 
     sending.value = true
     try {
+        const recipientIds = await resolveRecipientIds()
+        if (recipientIds.length === 0) {
+            $q.notify({ type: 'warning', message: t('communicationsPage.noRecipientsFound') || 'Nessun destinatario trovato per i criteri selezionati.' })
+            return
+        }
         await commStore.sendMessage({
-            title: form.title,
-            content: form.content,
-            recipients: form.recipients,
-            specific_classes: form.specificClasses,
+            subject: form.title,
+            body: form.content,
+            recipients: recipientIds,
             type: 'circular'
         })
         $q.notify({ type: 'positive', message: t('common.success') })

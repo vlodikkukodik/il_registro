@@ -1,14 +1,4 @@
 import quasarLangIt from 'quasar/lang/it'
-import quasarLangEn from 'quasar/lang/en-US'
-import quasarLangDe from 'quasar/lang/de'
-import quasarLangFr from 'quasar/lang/fr'
-import quasarLangEs from 'quasar/lang/es'
-import quasarLangRo from 'quasar/lang/ro'
-import quasarLangSq from 'quasar/lang/sq'
-import quasarLangRu from 'quasar/lang/ru'
-import quasarLangUk from 'quasar/lang/uk'
-import quasarLangAr from 'quasar/lang/ar'
-import quasarLangZh from 'quasar/lang/zh-CN'
 import { Quasar } from 'quasar'
 import { loadLocaleMessages } from '../i18n/loader'
 
@@ -26,32 +16,37 @@ export const SUPPORTED_LOCALES = [
   { label: '中文 (简体)', value: 'zh-CN', code: 'ZH', flag: '🇨🇳', icon: 'language', dir: 'ltr' }
 ]
 
-const QUASAR_LANG_MAP = {
-  'it-IT': quasarLangIt,
-  'it': quasarLangIt,
-  'en-US': quasarLangEn,
-  'en': quasarLangEn,
-  'de-DE': quasarLangDe,
-  'de': quasarLangDe,
-  'fr-FR': quasarLangFr,
-  'fr': quasarLangFr,
-  'es-ES': quasarLangEs,
-  'es': quasarLangEs,
-  'ro-RO': quasarLangRo,
-  'ro': quasarLangRo,
-  'sq-AL': quasarLangSq,
-  'sq': quasarLangSq,
-  'al': quasarLangSq,
-  'ru-RU': quasarLangRu,
-  'ru': quasarLangRu,
-  'uk-UA': quasarLangUk,
-  'uk': quasarLangUk,
-  'ua': quasarLangUk,
-  'ar-SA': quasarLangAr,
-  'ar': quasarLangAr,
-  'zh-CN': quasarLangZh,
-  'zh': quasarLangZh,
-  'cn': quasarLangZh
+// Loaded lazily (not bundled eagerly): each of these packs is only needed
+// when a user actually switches to that language, and eagerly importing all
+// eleven bloated the initial bundle with every script (Arabic, Chinese,
+// Cyrillic, ...) merged into it — which triggered a WebKit/Safari parsing
+// failure on iOS for pages loading that chunk.
+const QUASAR_LANG_LOADERS = {
+  'it-IT': () => Promise.resolve(quasarLangIt),
+  'it': () => Promise.resolve(quasarLangIt),
+  'en-US': () => import('quasar/lang/en-US').then(m => m.default),
+  'en': () => import('quasar/lang/en-US').then(m => m.default),
+  'de-DE': () => import('quasar/lang/de').then(m => m.default),
+  'de': () => import('quasar/lang/de').then(m => m.default),
+  'fr-FR': () => import('quasar/lang/fr').then(m => m.default),
+  'fr': () => import('quasar/lang/fr').then(m => m.default),
+  'es-ES': () => import('quasar/lang/es').then(m => m.default),
+  'es': () => import('quasar/lang/es').then(m => m.default),
+  'ro-RO': () => import('quasar/lang/ro').then(m => m.default),
+  'ro': () => import('quasar/lang/ro').then(m => m.default),
+  'sq-AL': () => import('quasar/lang/sq').then(m => m.default),
+  'sq': () => import('quasar/lang/sq').then(m => m.default),
+  'al': () => import('quasar/lang/sq').then(m => m.default),
+  'ru-RU': () => import('quasar/lang/ru').then(m => m.default),
+  'ru': () => import('quasar/lang/ru').then(m => m.default),
+  'uk-UA': () => import('quasar/lang/uk').then(m => m.default),
+  'uk': () => import('quasar/lang/uk').then(m => m.default),
+  'ua': () => import('quasar/lang/uk').then(m => m.default),
+  'ar-SA': () => import('quasar/lang/ar').then(m => m.default),
+  'ar': () => import('quasar/lang/ar').then(m => m.default),
+  'zh-CN': () => import('quasar/lang/zh-CN').then(m => m.default),
+  'zh': () => import('quasar/lang/zh-CN').then(m => m.default),
+  'cn': () => import('quasar/lang/zh-CN').then(m => m.default)
 }
 
 export function normalizeLocale(lang) {
@@ -98,9 +93,18 @@ export function getSavedLocale(fallbackToBrowser = false) {
   return 'it-IT'
 }
 
-export function getQuasarLang(langCode) {
+// Synchronous fallback for contexts that need a pack immediately (app boot):
+// always Italian, since that's the only one guaranteed already in memory.
+// Callers wanting the real pack for a saved non-Italian preference should
+// use getQuasarLangAsync and apply it once resolved (see applyLocale).
+export function getQuasarLang() {
+  return quasarLangIt
+}
+
+export function getQuasarLangAsync(langCode) {
   const normalized = normalizeLocale(langCode)
-  return QUASAR_LANG_MAP[normalized] || quasarLangIt
+  const loader = QUASAR_LANG_LOADERS[normalized]
+  return loader ? loader().catch(() => quasarLangIt) : Promise.resolve(quasarLangIt)
 }
 
 export function applyLocale(langCode, i18nInstance = null, $q = null) {
@@ -132,17 +136,18 @@ export function applyLocale(langCode, i18nInstance = null, $q = null) {
     }
   }
 
-  // 2. Update Quasar Language Pack
-  const quasarPack = QUASAR_LANG_MAP[normalized] || quasarLangIt
-  try {
-    if ($q && $q.lang && typeof $q.lang.set === 'function') {
-      $q.lang.set(quasarPack)
-    } else if (typeof Quasar !== 'undefined' && Quasar?.lang && typeof Quasar.lang.set === 'function') {
-      Quasar.lang.set(quasarPack)
+  // 2. Update Quasar Language Pack (lazy-loaded, see QUASAR_LANG_LOADERS)
+  getQuasarLangAsync(normalized).then((quasarPack) => {
+    try {
+      if ($q && $q.lang && typeof $q.lang.set === 'function') {
+        $q.lang.set(quasarPack)
+      } else if (typeof Quasar !== 'undefined' && Quasar?.lang && typeof Quasar.lang.set === 'function') {
+        Quasar.lang.set(quasarPack)
+      }
+    } catch (err) {
+      console.warn('Failed to set Quasar language pack:', err)
     }
-  } catch (err) {
-    console.warn('Failed to set Quasar language pack:', err)
-  }
+  })
 
   // 3. Update DOM direction and lang
   if (typeof document !== 'undefined' && document.documentElement) {

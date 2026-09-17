@@ -62,7 +62,7 @@ router.afterEach((to, from, failure) => {
 
 router.onError((error, to) => {
     rlog('onError to=' + (to && to.fullPath) + ' msg=' + (error && error.message) + ' stack=' + (error && error.stack))
-    if (error.message && /loading chunk|failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|unable to preload css/i.test(error.message)) {
+    if (error.message && /loading chunk|failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|unable to preload css|is not a valid javascript mime type/i.test(error.message)) {
         console.error('Lazy-load chunk failure detected:', error)
         const retryKey = `chunk_retry_${to?.fullPath || 'unknown'}`
         if (!sessionStorage.getItem(retryKey)) {

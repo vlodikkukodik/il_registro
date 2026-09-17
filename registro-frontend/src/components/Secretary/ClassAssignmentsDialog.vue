@@ -43,23 +43,33 @@
             <q-card flat class="rounded-xl bg-slate-50 q-pa-md border-slate-200">
               <div class="text-subtitle1 text-weight-bold text-slate-800 q-mb-md">{{ t('secretaryClasses.assignSubject') }}</div>
               <q-form @submit="addAssignment" class="q-gutter-y-md">
-                <q-select
-                  v-model="assignForm.subject_id"
-                  :options="subjectOptions"
-                  :label="t('secretaryClasses.subject') + ' *'"
-                  outlined dense
-                  emit-value map-options
-                  :rules="[val => !!val || t('secretaryClasses.selectSubject')]"
-                >
-                  <template #no-option>
-                    <q-item>
-                      <q-item-section class="text-grey">{{ t('secretaryClasses.noSubjectsFound') }}</q-item-section>
-                    </q-item>
-                    <q-item clickable @click="openCreateSubject">
-                      <q-item-section class="text-primary text-weight-bold">{{ t('secretaryClasses.addNewSubject') }}</q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
+                <div class="row q-col-gutter-sm items-start">
+                  <q-select
+                    v-model="assignForm.subject_id"
+                    :options="subjectOptions"
+                    :label="t('secretaryClasses.subject') + ' *'"
+                    outlined dense
+                    emit-value map-options
+                    :rules="[val => !!val || t('secretaryClasses.selectSubject')]"
+                    class="col"
+                  >
+                    <template #no-option>
+                      <q-item>
+                        <q-item-section class="text-grey">{{ t('secretaryClasses.noSubjectsFound') }}</q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                  <q-btn
+                    flat round dense
+                    icon="add"
+                    color="primary"
+                    class="q-mt-xs"
+                    :aria-label="t('secretaryClasses.addNewSubject')"
+                    @click="openCreateSubject"
+                  >
+                    <q-tooltip>{{ t('secretaryClasses.addNewSubject') }}</q-tooltip>
+                  </q-btn>
+                </div>
 
                 <q-select
                   v-model="assignForm.teacher_id"

@@ -1254,9 +1254,10 @@ const saveUnifiedRecord = async () => {
                 type: isSubstitutionMode.value ? 'Supplenza' : lessonType.value,
                 activity_type: activityType.value || 'standard',
                 is_co_teaching: isCoTeaching.value,
+                is_substitution: isSubstitutionMode.value,
                 notes: lessonNotes.value
             }
-            
+
             let lessonId = currentHourLesson.value?.id
             if (currentHourLesson.value && !isReadOnly.value) {
                 await executeWithOfflineQueue(
@@ -1410,6 +1411,7 @@ const saveMultiHour = async (hoursCount) => {
                         type: isSubstitutionMode.value ? 'Supplenza' : lessonType.value,
                         activity_type: activityType.value || 'standard',
                         is_co_teaching: isCoTeaching.value,
+                        is_substitution: isSubstitutionMode.value,
                         notes: lessonNotes.value
                     }
 

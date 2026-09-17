@@ -39,6 +39,9 @@ func (s *service) CreateLesson(teacherID string, req CreateLessonRequest) (*Less
 	if req.ClassID == "" {
 		return nil, errors.New("class_id is required")
 	}
+	if !req.IsSubstitution && req.SubjectID == "" {
+		return nil, errors.New("subject_id is required")
+	}
 	isAssigned, err := s.repo.IsTeacherAssignedToClass(teacherID, req.ClassID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check teacher assignment: %w", err)

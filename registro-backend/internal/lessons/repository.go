@@ -46,19 +46,22 @@ func (r *repository) CreateLesson(lesson *Lesson) error {
 		LEFT JOIN users u1 ON inserted.teacher_id = u1.id
 		LEFT JOIN users u2 ON inserted.substituted_teacher_id = u2.id
 	`
-	var groupID, subTeacherID sql.NullString
+	var groupID, subTeacherID, subjectID sql.NullString
 	if lesson.GroupID != nil && *lesson.GroupID != "" {
 		groupID = sql.NullString{String: *lesson.GroupID, Valid: true}
 	}
 	if lesson.SubstitutedTeacherID != nil && *lesson.SubstitutedTeacherID != "" {
 		subTeacherID = sql.NullString{String: *lesson.SubstitutedTeacherID, Valid: true}
 	}
+	if lesson.SubjectID != "" {
+		subjectID = sql.NullString{String: lesson.SubjectID, Valid: true}
+	}
 	if lesson.ActivityType == "" {
 		lesson.ActivityType = "standard"
 	}
 
 	return r.db.QueryRow(query,
-		lesson.ClassID, lesson.TeacherID, lesson.SubjectID, lesson.Date,
+		lesson.ClassID, lesson.TeacherID, subjectID, lesson.Date,
 		lesson.Hour, lesson.Duration, lesson.Topic, lesson.Type,
 		groupID, lesson.IsSubstitution, subTeacherID, lesson.ActivityType, lesson.IsCoTeaching,
 	).Scan(&lesson.ID, &lesson.TeacherName, &lesson.SubstitutedTeacherName)

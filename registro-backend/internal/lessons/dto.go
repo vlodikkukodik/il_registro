@@ -4,7 +4,9 @@ import "time"
 
 type CreateLessonRequest struct {
 	ClassID              string  `json:"class_id" binding:"required"`
-	SubjectID            string  `json:"subject_id" binding:"required"`
+	// Optional only for substitution lessons (IsSubstitution=true); enforced
+	// in the service layer since it's conditional on another field.
+	SubjectID            string  `json:"subject_id"`
 	Date                 string  `json:"date" binding:"required"` // YYYY-MM-DD
 	Hour                 int     `json:"hour" binding:"required"`
 	Duration             int     `json:"duration" binding:"required"`

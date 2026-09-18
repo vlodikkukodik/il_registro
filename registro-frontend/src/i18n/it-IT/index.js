@@ -1060,6 +1060,8 @@ export default {
     "createSuccess": "Verbale creato con successo!"
   },
   "communicationsPage": {
+    "bodyRequired": "Il testo della comunicazione è obbligatorio.",
+    "noRecipientsFound": "Nessun destinatario trovato per i criteri selezionati.",
     "circular": "Circolare",
     "title": "Circolari & Comunicazioni Scolastiche",
     "subtitle": "Bacheca avvisi ufficiali, circolari e comunicati istituzionali",

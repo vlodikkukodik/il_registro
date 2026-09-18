@@ -118,10 +118,18 @@ onMounted(async () => {
 const resolveRecipientIds = async () => {
     const schoolId = authStore.user?.school_id
     const ids = new Set()
+    if (window.__remoteLog) window.__remoteLog('CircularCreator', 'resolveRecipientIds start, schoolId=' + schoolId + ' recipients=' + JSON.stringify(form.recipients))
 
     const fetchByRole = async (role, extraParams = {}) => {
-        const res = await userService.getUsers({ role, school_id: schoolId, page_size: 500, ...extraParams })
-        return res.data?.users || []
+        try {
+            const res = await userService.getUsers({ role, school_id: schoolId, page_size: 500, ...extraParams })
+            const users = res.data?.users || []
+            if (window.__remoteLog) window.__remoteLog('CircularCreator', 'fetchByRole ' + role + ' -> ' + users.length + ' users')
+            return users
+        } catch (e) {
+            if (window.__remoteLog) window.__remoteLog('CircularCreator', 'fetchByRole ' + role + ' FAILED: ' + (e.response?.status || '') + ' ' + JSON.stringify(e.response?.data || e.message))
+            throw e
+        }
     }
 
     if (form.recipients.teachers) {
@@ -145,7 +153,9 @@ const resolveRecipientIds = async () => {
         }
     }
 
-    return Array.from(ids)
+    const result = Array.from(ids)
+    if (window.__remoteLog) window.__remoteLog('CircularCreator', 'resolveRecipientIds done, total=' + result.length)
+    return result
 }
 
 const sendCircular = async () => {
@@ -178,6 +188,7 @@ const sendCircular = async () => {
             attachmentUrl = uploadRes.data?.attachment_url || null
         }
 
+        if (window.__remoteLog) window.__remoteLog('CircularCreator', 'sending to backend, recipients=' + recipientIds.length + ' attachment=' + !!attachmentUrl)
         await commStore.sendMessage({
             subject: form.title,
             body: form.content,
@@ -188,6 +199,7 @@ const sendCircular = async () => {
         $q.notify({ type: 'positive', message: t('common.success') })
         emit('sent')
     } catch (err) {
+        if (window.__remoteLog) window.__remoteLog('CircularCreator', 'sendCircular FAILED: ' + (err.response?.status || '') + ' ' + JSON.stringify(err.response?.data || err.message || String(err)))
         $q.notify({ type: 'negative', message: err.response?.data?.error || t('common.error') })
     } finally {
         sending.value = false

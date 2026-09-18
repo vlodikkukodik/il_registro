@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
-import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync } from 'node:fs'
 
@@ -61,93 +60,6 @@ export default defineConfig({
 
     quasar({
       sassVariables: 'src/assets/styles/variables.scss'
-    }),
-
-    VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: false,
-      includeAssets: ['favicon.ico', 'vite.svg'],
-      manifest: {
-        name: 'Registro Elettronico Scolastico',
-        short_name: 'Registro',
-        description: 'Registro Elettronico Scolastico Moderno',
-        theme_color: '#4F46E5',
-        background_color: '#F8FAFC',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: basePath,
-        start_url: basePath,
-        icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      },
-      workbox: {
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/cdn\.quasar\.dev\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'quasar-assets',
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              }
-            }
-          },
-          {
-            // API responses caching: Stale-while-revalidate for static list resources and class rosters
-            urlPattern: ({ url }) => {
-              return url.pathname.includes('/teachers') ||
-                     url.pathname.includes('/subjects') ||
-                     url.pathname.includes('/schools') ||
-                     url.pathname.includes('/classes') ||
-                     url.pathname.includes('/students') ||
-                     url.pathname.includes('/academic-years') ||
-                     url.pathname.includes('/school-year')
-            },
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-static-lists',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
-      }
     })
   ],
   resolve: {

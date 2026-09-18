@@ -401,6 +401,8 @@ var allowedSettingKeys = map[string]bool{
 	"enable_elearning":                true,
 	"enable_uda":                      true,
 	"enable_colloqui":                 true,
+	"school_calendar_holidays":        true,
+	"school_office_hours":             true,
 }
 
 // UpdateSchoolSetting updates a school setting with allowlist validation

@@ -100,7 +100,8 @@ func (h *Handler) List(c *gin.Context) {
 func (h *Handler) Update(c *gin.Context) {
 	role := c.GetString("role")
 	schoolID := c.GetString("school_id")
-	if role != "superadmin" && role != "admin" {
+	allowedRoles := map[string]bool{"superadmin": true, "admin": true, "secretary": true, "principal": true, "dsga": true}
+	if !allowedRoles[role] {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden: only administrative staff can update schools"})
 		return
 	}
@@ -109,7 +110,7 @@ func (h *Handler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "school ID is required"})
 		return
 	}
-	if role == "admin" && schoolID != "" && schoolID != id {
+	if role != "superadmin" && schoolID != "" && schoolID != id {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden: cannot update other schools"})
 		return
 	}

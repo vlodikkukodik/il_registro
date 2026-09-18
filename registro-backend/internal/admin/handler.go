@@ -583,6 +583,10 @@ func (h *Handler) UpdateSchoolSetting(c *gin.Context) {
 	}
 
 	if err := h.service.UpdateSchoolSetting(c.Request.Context(), schoolID, key, body.Value); err != nil {
+		if strings.Contains(err.Error(), "invalid or unauthorized setting key") {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
 		return
 	}

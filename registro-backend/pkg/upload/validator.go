@@ -66,11 +66,16 @@ func ValidateUpload(file multipart.File, header *multipart.FileHeader) error {
 		}
 	}
 
-	// 3. Read the first 512 bytes using LimitReader to ensure actual payload doesn't bypass limit
+	// 3. Read a sample for MIME sniffing. OOXML formats (docx/xlsx/pptx) are
+	// ZIP archives whose distinguishing internal entries (word/, xl/, ppt/)
+	// often aren't reachable within the first 512 bytes, so a too-small
+	// sample makes the mimetype library misdetect real Office documents as
+	// generic ZIP/octet-stream and reject them. 3072 bytes matches the
+	// library's own recommended default sniffing limit.
 	limitedReader := io.LimitReader(file, MaxUploadSize+1)
-	head := make([]byte, 512)
-	n, err := limitedReader.Read(head)
-	if err != nil && err != io.EOF {
+	head := make([]byte, 3072)
+	n, err := io.ReadFull(limitedReader, head)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return errors.New("errore nella lettura del file")
 	}
 	if n == 0 {
@@ -101,9 +106,9 @@ func DetectMIME(file multipart.File) (string, error) {
 	if file == nil {
 		return "", errors.New("file is nil")
 	}
-	head := make([]byte, 512)
-	n, err := file.Read(head)
-	if err != nil && err != io.EOF {
+	head := make([]byte, 3072)
+	n, err := io.ReadFull(file, head)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return "", err
 	}
 	head = head[:n]

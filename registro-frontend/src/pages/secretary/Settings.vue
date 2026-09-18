@@ -56,7 +56,7 @@
                     </div>
                 </div>
                 <div class="row q-mt-xl">
-                    <q-btn color="primary" :label="t('settingsPage.saveChanges') || 'Salva Modifiche'" size="lg" padding="md xl" no-caps class="rounded-lg shadow-sm" @click="saveSettings" />
+                    <q-btn color="primary" :label="t('settingsPage.saveChanges') || 'Salva Modifiche'" size="lg" padding="md xl" no-caps class="rounded-lg shadow-sm" @click="saveSettings" :loading="savingSettings" />
                 </div>
             </q-tab-panel>
 
@@ -280,6 +280,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { userService } from '@/services/userService'
 import adminService from '@/services/adminService'
+import schoolService from '@/services/schoolService'
 import api from '@/services/api'
 import AccessibilitySettingsPanel from '@/components/Common/AccessibilitySettingsPanel.vue'
 
@@ -340,15 +341,35 @@ const changeSecretaryPassword = async () => {
 
 
 const settings = reactive({
-    schoolName: 'Istituto Comprensivo "Alessandro Volta"',
-    schoolCode: 'RMPC123456',
-    address: 'Via Roma 1, 00100 Roma',
-    email: 'segreteria@scuola.it',
-    pec: 'scuola@pec.it',
-    phone: '06 12345678',
-    term1End: '2025-01-31',
-    term2End: '2025-06-08'
+    schoolName: '',
+    schoolCode: '',
+    address: '',
+    email: '',
+    pec: '',
+    phone: '',
+    // No backend field exists yet for semester end dates on the school
+    // record itself (see academic_periods for the real per-year schedule);
+    // kept local-only until that's wired up.
+    term1End: '',
+    term2End: ''
 })
+const savingSettings = ref(false)
+
+const fetchSchoolSettings = async () => {
+    const schoolId = authStore.user?.school_id
+    if (!schoolId) return
+    try {
+        const res = await schoolService.getSchool(schoolId)
+        const s = res.data || {}
+        settings.schoolName = s.name || ''
+        settings.schoolCode = s.code || ''
+        settings.address = s.address || ''
+        settings.email = s.email || ''
+        settings.phone = s.phone || ''
+    } catch (err) {
+        $q.notify({ type: 'negative', message: 'Errore nel caricamento dei dati istituto' })
+    }
+}
 
 const holidays = ref([])
 const officeHours = ref([])
@@ -488,15 +509,31 @@ const formatDateRange = (start, end) => {
   return `${s} - ${e}`
 }
 
-const saveSettings = () => {
-    $q.loading.show()
-    setTimeout(() => {
-        $q.loading.hide()
+const saveSettings = async () => {
+    const schoolId = authStore.user?.school_id
+    if (!schoolId) {
+        $q.notify({ type: 'negative', message: 'Nessuna scuola associata al tuo account' })
+        return
+    }
+    savingSettings.value = true
+    try {
+        await schoolService.updateSchool(schoolId, {
+            name: settings.schoolName,
+            code: settings.schoolCode,
+            address: settings.address,
+            email: settings.email,
+            phone: settings.phone
+        })
         $q.notify({ type: 'positive', message: 'Impostazioni salvate' })
-    }, 800)
+    } catch (err) {
+        $q.notify({ type: 'negative', message: err.response?.data?.error || 'Errore durante il salvataggio' })
+    } finally {
+        savingSettings.value = false
+    }
 }
 
 onMounted(() => {
+  fetchSchoolSettings()
   fetchHolidays()
   fetchOfficeHours()
 })

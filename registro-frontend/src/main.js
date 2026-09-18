@@ -100,23 +100,19 @@ try {
 // Done after mount so Pinia is fully available.
 useOutboxStore().init().catch(e => console.warn('[outbox] init failed:', e))
 
-// PWA update handling: registerType 'autoUpdate' only swaps in a new service
-// worker on navigation/reload by default, so a tab left open never notices a
-// new deploy. Poll for updates while the tab is open and reload as soon as a
-// new version takes control, so stale cached builds don't linger silently.
+// The PWA/service-worker layer was removed entirely: its precaching and
+// runtime API caching repeatedly served stale app builds and stale data
+// (settings that looked saved but reverted, old chunks after a redeploy)
+// with no reliable way to force an update on some devices. Proactively
+// unregister any service worker and clear any caches left over from before
+// this change, for anyone who already has one installed.
 if ('serviceWorker' in navigator) {
-  import('virtual:pwa-register').then(({ registerSW }) => {
-    const updateSW = registerSW({
-      immediate: true,
-      onRegisteredSW(_swUrl, registration) {
-        if (!registration) return
-        setInterval(() => {
-          registration.update().catch(() => {})
-        }, 60 * 1000)
-      },
-      onNeedRefresh() {
-        updateSW(true)
-      }
-    })
-  }).catch((e) => console.warn('[pwa] service worker registration failed:', e))
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister())
+  }).catch(() => {})
+}
+if ('caches' in window) {
+  caches.keys().then((keys) => {
+    keys.forEach((key) => caches.delete(key))
+  }).catch(() => {})
 }

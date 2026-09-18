@@ -7,8 +7,15 @@ import { readFileSync } from 'node:fs'
 
 const packageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
+// Set VITE_BASE_PATH (and pass the same value to --base) when building for a
+// subpath deployment (e.g. majordomo's vladinc.ru/registro/), so the PWA
+// manifest's scope/start_url match where the app is actually served instead
+// of always pointing "Add to Home Screen" at the site root.
+const basePath = process.env.VITE_BASE_PATH || '/'
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: basePath,
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version || '1.0.0-beta'),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString().split('T')[0])
@@ -68,8 +75,8 @@ export default defineConfig({
         background_color: '#F8FAFC',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: basePath,
+        start_url: basePath,
         icons: [
           {
             src: 'pwa-192x192.png',
